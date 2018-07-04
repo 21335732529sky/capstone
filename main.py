@@ -35,7 +35,13 @@ for i in range(train_iter):
 
 pred = {key: model.predict(test_x[key]) for key in test_x.keys()}
 
+with open('result.csv', 'w', encoding='utf-8') as f:
+    for key in test_x.keys():
+        f.write(','.join(test_y[key]) + '\n' + \
+                ','.join(pred[key]))
 
+
+'''
 for key in test_x.keys():
     pl.subplot(211)
     pl.title('Predictions of symbol : {}'.format(key))
@@ -66,3 +72,4 @@ if command == 'y':
     print('complete')
 else:
     print('quit program')
+'''
