@@ -80,7 +80,8 @@ def calc_dmi(High, Low, Close, window):
     ret = []
     pdi = []
     mdi = []
-    for j in range(len(High) - window):
+    length = len(High)
+    for j in range(length - window):
         pDM = sum(High[i] - High[i - 1] if High[i] > High[i - 1]\
                   else 0 for i in range(j+1, window+j+1))
         mDM = sum(Low[i - 1] - Low[i] if Low[i - 1] > Low[i]\

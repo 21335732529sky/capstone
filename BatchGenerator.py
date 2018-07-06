@@ -20,6 +20,8 @@ class BatchGenerator:
         stocks = self.maxScaling(self.readStockPrices(domains))
         stocks = {key: self.calcIndices(df, indices) for key,df in zip(stocks.keys(),
                                                                        stocks.values())}
+#        for key in stocks.keys():
+#            stocks[key].to_csv('{}.csv'.format(key), index=False)
 
         if use_fundamental:
             seats = self.maxScaling(self.readBalanceSeat([x[0] for x in domains]))
@@ -81,6 +83,8 @@ class BatchGenerator:
                 st = max(0, i-200)
                 ed = i+1
                 prices = [df.ix[st:ed, [key]].values.flatten() for key in self.get_price_type(f, len(params))]
+                if (ed-st) <= max(params):
+                    prices = [np.array([x[0],]*(max(params) - (ed - st) + 1) + list(x)) for x in prices]
                 args = prices + params
                 tmp2 = f(*args)
                 if type(tmp2) != tuple: tmp2 = (tmp2, )
@@ -107,7 +111,7 @@ class BatchGenerator:
     def readStockPrices(self, domains):
         ret = {}
         for symbol, length in domains:
-            df = pd.read_csv('CSVData/{}.csv'.format(symbol), usecols=['Date', 'Close'],
+            df = pd.read_csv('CSVData/{}.csv'.format(symbol), usecols=['Date', 'Close', 'High', 'Low'],
                              index_col='Date')
             df = df.ix[-length:, :]
             ret[symbol] = df
