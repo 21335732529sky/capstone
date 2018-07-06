@@ -16,7 +16,6 @@ class BatchGenerator:
         self.th = threshould
         self.norm = norm_distrib
         tmp = self.readStockPrices(domains)
-        print(dir(tools))
         self.prices = {key: tmp[key].ix[30:, ['Close']].values.flatten() for key in tmp.keys()}
         stocks = self.maxScaling(self.readStockPrices(domains))
         stocks = {key: self.calcIndices(df, indices) for key,df in zip(stocks.keys(),
@@ -46,6 +45,9 @@ class BatchGenerator:
         if label_mode == 'C': self.clustered = self.cluster(self.labels, min_=91)
 
         self.mode = label_mode
+
+    def get_shape(self, key):
+        return self.datasets[key].shape
 
     def Func(self, x):
         func_list = dir(tools)
