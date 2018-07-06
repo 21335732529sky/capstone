@@ -69,10 +69,10 @@ def calc_wma(Close, window, norm=False):
 
 def calc_macd(Close, span_s, span_l, span_sig):
     V = pd.DataFrame(Close)
-    short = pd.DataFrame(pd.ewma(V, span=span_s)).fillna(method='bfill')
-    Long = pd.DataFrame(pd.ewma(V, span=span_l)).fillna(method='bfill')
+    short = pd.DataFrame(V.ewm(span=span_s).mean()).fillna(method='bfill')
+    Long = pd.DataFrame(V.ewm(span=span_s).mean()).fillna(method='bfill')
     macd = short-Long
-    macd_sig = pd.DataFrame(pd.ewma(macd, span=span_sig)).fillna(method='bfill')
+    macd_sig = pd.DataFrame(macd.ewm(span=span_sig).mean()).fillna(method='bfill')
 
     return macd.values.flatten(), macd_sig.values.flatten()
 
