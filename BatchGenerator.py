@@ -83,7 +83,7 @@ class BatchGenerator:
             tmp = f(*args)
             if type(tmp) != tuple: tmp = (tmp, )
 
-            data = [np.array(map(np.log, d)) if max(d) > 10 else d for d in data]
+            tmp = [np.array(map(np.log, d)) if max(d) > 10 else d for d in tmp]
 
             for i, data in enumerate(tmp): ret[name+str(params[0])+'_{}'.format(i)] = data
             for i, data in enumerate(tmp): ret[name+str(params[0])+'^2_{}'.format(i)] = np.array(list(map(lambda x : x**2, data)))
