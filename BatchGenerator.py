@@ -3,6 +3,7 @@ import numpy as np
 import tools
 from tqdm import tqdm
 import random
+import inspect
 import matplotlib.pyplot as pl
 import sys
 from collections import Counter
@@ -15,7 +16,7 @@ class BatchGenerator:
         self.th = threshould
         self.norm = norm_distrib
         tmp = self.readStockPrices(domains)
-
+        print(dir(tools))
         self.prices = {key: tmp[key].ix[30:, ['Close']].values.flatten() for key in tmp.keys()}
         stocks = self.maxScaling(self.readStockPrices(domains))
         stocks = {key: self.calcIndices(df, indices) for key,df in zip(stocks.keys(),
@@ -35,13 +36,6 @@ class BatchGenerator:
                        for key in self.datasets.keys()}
         self.labels = {key: self.label(self.smooth[key], span, mode=label_mode) for key in self.datasets.keys()}
 
-        '''
-        pl.subplot(211)
-        pl.plot(self.smooth['7974'][-200:])
-        pl.subplot(212)
-        pl.plot(self.labels['7974'][-200:])
-        pl.show()
-        '''
 
 
         for key in self.labels.keys() :
@@ -54,16 +48,15 @@ class BatchGenerator:
         self.mode = label_mode
 
     def Func(self, x):
-        if x == 'sma':
-            return tools.calc_sma
-        elif x == 'wma':
-            return tools.calc_wma
-        elif x == 'rsi':
-            return tools.calc_rsi
-        elif x == 'macd':
-            return tools.calc_macd
-        elif x == 'roc':
-            return tools.calc_roc
+        func_list = dir(tools)
+        return eval('tools.{}'.format(next(name for name in func_list if name.find(x) != -1)))
+
+    def get_price_type(self, f, n_having):
+        sig = inspect.signature(f)
+        param_names = [x.name for x in sig.parameters.values()]
+
+        return param_names[:len(param_names) - n_having]
+
 
     def cluster(self, labels, min_=0):
         ret = {}
@@ -85,15 +78,16 @@ class BatchGenerator:
             for i in tqdm(range(df.shape[0]), total=df.shape[0]):
                 st = max(0, i-200)
                 ed = i+1
-                tmp2 = f(df.ix[st:ed, ['Close']].values.flatten(),
-                                       *params)
+                prices = [df.ix[st:ed, [key]].values.flatten() for key in self.get_price_type(f, len(params))]
+                args = prices + params
+                tmp2 = f(*args)
                 if type(tmp2) != tuple: tmp2 = (tmp2, )
                 tmp2 = [x[-1] for x in tmp2]
                 tmp.append(tmp2)
             tmp = np.array(tmp).T
             for i, data in enumerate(tmp): ret[name+str(params[0])+'_{}'.format(i)] = data
             for i, data in enumerate(tmp): ret[name+str(params[0])+'^2_{}'.format(i)] = np.array(list(map(lambda x : x**2, data)))
-            for i, data in enumerate(tmp): ret[name+str(params[0])+'^3_{}'.format(i)] = np.array(list(map(lambda x : x**2, data)))
+            for i, data in enumerate(tmp): ret[name+str(params[0])+'^3_{}'.format(i)] = np.array(list(map(lambda x : x**3, data)))
             #ret[name+str(params[0])+"^2"] = np.array(list(map(lambda x : x**2, tmp)))
             #ret[name+str(params[0])+"^3"] = np.array(list(map(lambda x : x**3, tmp)))
 
