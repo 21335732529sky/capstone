@@ -76,26 +76,14 @@ class BatchGenerator:
     def calcIndices(self, df, indices):
         ret = pd.DataFrame(df.ix[:, :])
         for name, params in indices:
-            tmp = []
             print('calculating {} ...'.format(name))
             f = self.Func(name)
-            '''
-            for i in tqdm(range(df.shape[0]), total=df.shape[0]):
-                st = max(0, i-200)
-                ed = i+1
-                prices = [df.ix[st:ed, [key]].values.flatten() for key in self.get_price_type(f, len(params))]
-                if (ed-st) <= max(params):
-                    prices = [np.array([x[0],]*(max(params) - (ed - st) + 1) + list(x)) for x in prices]
-                args = prices + params
-                tmp2 = f(*args)
-                if type(tmp2) != tuple: tmp2 = (tmp2, )
-                tmp2 = [x[-1] for x in tmp2]
-                tmp.append(tmp2)
-            '''
             prices = [df.ix[:, [key]].values.flatten() for key in self.get_price_type(f, len(params))]
             args = prices + params
             tmp = f(*args)
             if type(tmp) != tuple: tmp = (tmp, )
+
+            data = [np.array(map(np.log, d)) if max(d) > 10 else d for d in data]
 
             for i, data in enumerate(tmp): ret[name+str(params[0])+'_{}'.format(i)] = data
             for i, data in enumerate(tmp): ret[name+str(params[0])+'^2_{}'.format(i)] = np.array(list(map(lambda x : x**2, data)))
