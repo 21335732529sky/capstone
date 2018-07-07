@@ -1,12 +1,10 @@
 import pandas as pd
 import numpy as np
 import tools
-from tqdm import tqdm
 import random
 import inspect
-import matplotlib.pyplot as pl
-import sys
-from collections import Counter
+from sklearn.preprocessing import MinMaxScaler
+
 
 class BatchGenerator:
     def __init__(self, span, indices=None, domains=None, test_size=0.2,
@@ -15,29 +13,26 @@ class BatchGenerator:
         self.span = span
         self.th = threshould
         self.norm = norm_distrib
-        tmp = self.readStockPrices(domains)
+        tmp = self.read_stock_prices(domains)
         self.prices = {key: tmp[key].ix[30:, ['Close']].values.flatten() for key in tmp.keys()}
-        stocks = self.maxScaling(self.readStockPrices(domains))
-        stocks = {key: self.calcIndices(df, indices) for key,df in zip(stocks.keys(),
-                                                                       stocks.values())}
-#        for key in stocks.keys():
-#            stocks[key].to_csv('{}.csv'.format(key), index=False)
+        stocks = self.read_stock_prices(domains)
+        stocks = {key: self.max_scaling(self.calc_indices(df, indices)) for key, df in zip(stocks.keys(),
+                                                                                           stocks.values())}
+        stocks = {key: self.calc_polynomial(stocks[key]) for key in stocks.keys()}
 
         if use_fundamental:
-            seats = self.maxScaling(self.readBalanceSeat([x[0] for x in domains]))
-            self.datasets = self.mergeDataFrames(stocks, seats, list(stocks.keys()))
+            seats = self.max_scaling(self.read_balance_seat([x[0] for x in domains]))
+            self.datasets = self.merge_dataframe(stocks, seats, list(stocks.keys()))
         else:
             self.datasets = stocks
 
         self.splitPoint = {key: int((1 - test_size)*length) for key,length in domains}
         self.index = {key: list(range(l)) for key,l in zip(self.splitPoint.keys(),
                                                            self.splitPoint.values())}
-        self.smooth = {key: self.LowPassFilter(self.datasets[key].ix[:, ['Close']].values.flatten(),
-                                               freq, self.datasets[key].shape[0]+300)\
+        self.smooth = {key: self.low_pass_filter(self.datasets[key].ix[:, ['Close']].values.flatten(),
+                                                 freq, self.datasets[key].shape[0] + 300)\
                        for key in self.datasets.keys()}
         self.labels = {key: self.label(self.smooth[key], span, mode=label_mode) for key in self.datasets.keys()}
-
-
 
         for key in self.labels.keys() :
             #self.datasets[key].ix[:, ['Close']] = np.array([[x] for x in self.smooth[key][:-300]])
@@ -51,16 +46,17 @@ class BatchGenerator:
     def get_shape(self, key):
         return self.datasets[key].shape
 
-    def Func(self, x):
+    @staticmethod
+    def _func(x):
         func_list = dir(tools)
         return eval('tools.{}'.format(next(name for name in func_list if name.find(x) != -1)))
 
-    def get_price_type(self, f, n_having):
+    @staticmethod
+    def _get_price_type(f, n_having):
         sig = inspect.signature(f)
         param_names = [x.name for x in sig.parameters.values()]
 
         return param_names[:len(param_names) - n_having]
-
 
     def cluster(self, labels, min_=0):
         ret = {}
@@ -73,36 +69,41 @@ class BatchGenerator:
 
         return ret
 
-    def calcIndices(self, df, indices):
+    def calc_indices(self, df, indices):
         ret = pd.DataFrame(df.ix[:, :])
         for name, params in indices:
             print('calculating {} ...'.format(name))
-            f = self.Func(name)
-            prices = [df.ix[:, [key]].values.flatten() for key in self.get_price_type(f, len(params))]
+            f = self._func(name)
+            prices = [df.ix[:, [key]].values.flatten() for key in self._get_price_type(f, len(params))]
             args = prices + params
             tmp = f(*args)
             if type(tmp) != tuple: tmp = (tmp, )
-
-            tmp = [np.array(map(np.log, d)) if max(d) > 10 else d for d in tmp]
-
+            for d in tmp:
+                if max(d) > 10:
+                    print(max(d), min(d))
             for i, data in enumerate(tmp): ret[name+str(params[0])+'_{}'.format(i)] = data
-            for i, data in enumerate(tmp): ret[name+str(params[0])+'^2_{}'.format(i)] = np.array(list(map(lambda x : x**2, data)))
-            for i, data in enumerate(tmp): ret[name+str(params[0])+'^3_{}'.format(i)] = np.array(list(map(lambda x : x**3, data)))
-            #ret[name+str(params[0])+"^2"] = np.array(list(map(lambda x : x**2, tmp)))
-            #ret[name+str(params[0])+"^3"] = np.array(list(map(lambda x : x**3, tmp)))
 
         return ret
 
+    @staticmethod
+    def calc_polynomial(df, n=3):
+        for key in df.columns:
+            array = df[key].values.flatten()
+            for i in range(1, n+1):
+                df[key+'^{}'.format(i)] = np.array(list(map(lambda x: x**i, array)))
 
+        return df
 
-    def LowPassFilter(self, values, th, length):
+    @staticmethod
+    def low_pass_filter(values, th, length):
         fft = np.fft.fft(list(values)+[values[-1],]*(length-values.shape[0]), n=length)
         mask = [1 if i/fft.shape[0] <= th or i/fft.shape[0] >= 1 - th else 0\
                 for i in range(fft.shape[0])]
         fft = np.array([f*m for f,m in zip(fft, mask)])
         return np.array(abs(np.fft.ifft(fft)))
 
-    def readStockPrices(self, domains):
+    @staticmethod
+    def read_stock_prices(domains):
         ret = {}
         for symbol, length in domains:
             df = pd.read_csv('CSVData/{}.csv'.format(symbol), usecols=['Date', 'Close', 'High', 'Low'],
@@ -112,7 +113,8 @@ class BatchGenerator:
 
         return ret
 
-    def readBalanceSeat(self, symbols):
+    @staticmethod
+    def read_balance_seat(symbols):
         ret = {}
         for symbol in symbols:
             df = pd.read_csv('balance_seat/{}.csv'.format(symbol), index_col='Date')
@@ -120,7 +122,8 @@ class BatchGenerator:
 
         return ret
 
-    def mergeDataFrames(self, df1, df2, keys):
+    @staticmethod
+    def merge_dataframe(df1, df2, keys):
         ret = {}
         for key in keys:
             df1[key].index = pd.to_datetime(df1[key].index).ceil('D')
@@ -133,17 +136,18 @@ class BatchGenerator:
 
         return ret
 
-    def maxScaling(self, data):
+    @staticmethod
+    def max_scaling(data):
         ret = {}
         for key in data.keys():
-            ret[key] = data[key] / data[key].max()
+            data[key] = MinMaxScaler().fit_transform(data[key].values.reshape(-1, 1))
 
-        return ret
+        return data
 
-    def getBatch(self, batch_size, length=0):
+    def get_batch(self, batch_size, length=0):
         ret = []
         ret_l = []
-        indexes = self.getIndex(batch_size, norm_distrib=self.norm, length=length)
+        indexes = self.get_index(batch_size, norm_distrib=self.norm, length=length)
         for symbol, time in indexes:
             ret.append(list(self.datasets[symbol].ix[time-length:time, :].values))
             ret_l.append(self.labels[symbol][time])
@@ -151,10 +155,9 @@ class BatchGenerator:
         if self.mode == 'R':
             ret_l = [[x] for x in ret_l]
 
-
         return np.array(ret), np.array(ret_l)
 
-    def getIndex(self, batch_size, norm_distrib=False, length=0):
+    def get_index(self, batch_size, norm_distrib=False, length=0):
         if self.mode == 'C':
             if norm_distrib:
                 symbol = [random.choice(list(self.clustered.keys())) for _ in range(batch_size)]
@@ -169,8 +172,7 @@ class BatchGenerator:
 
         return ret
 
-
-    def getTestData(self, length, cut=True):
+    def get_test_data(self, length, cut=True):
         ret_x = {}
         ret_y = {}
         for key in self.datasets.keys():
@@ -182,7 +184,7 @@ class BatchGenerator:
             if self.mode == 'R': ret_y[key] = np.array([[x] for x in ret_y[key]])
         return ret_x, ret_y
 
-    def getPrice(self, key):
+    def get_price(self, key):
         return self.prices[key]
 
     def label(self, values, span, mode='C'):
@@ -201,13 +203,9 @@ class BatchGenerator:
 
             return np.array([ret[0],]*band + ret + [ret[-1],]*band)
 
-
         elif mode == 'R':
             ret = [(values[i+span]/values[i] - 1) for i in range(values.shape[0] - span)]
 
             return np.array(ret + [ret[-1],]*span)
-
-
-
 
         #return np.array(ret+[ret[-1],]*span)

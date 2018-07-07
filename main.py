@@ -20,13 +20,13 @@ dim = gen.get_shape('GBPJPY-30')[1]
 
 model = LSTMModel(dim, 3, span, input_dim=dim, output_dim=1, alpha=0.00001, mode='R')
 
-test_x, test_y = gen.getTestData(span, cut=True)
+test_x, test_y = gen.get_test_data(span, cut=True)
 train_iter = 20001
 err_list = []
 acc_list = []
 
 for i in range(train_iter):
-    batch_x, batch_y = gen.getBatch(32, length=span)
+    batch_x, batch_y = gen.get_batch(32, length=span)
     model.train(batch_x, batch_y, keep_prob=0.3)
 
     if i % 100 == 0:

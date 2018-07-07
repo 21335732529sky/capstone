@@ -39,7 +39,7 @@ gen = BatchGenerator(30, indices=[['sma', [10]], ['sma', [30]], ['rsi', [10]], [
                      domains=[['GBPJPY-30', 100000]],#[['7974', 2000], ['7203', 2000], ['6752', 2000], ['6504', 2000], ['4506', 2000]],#
                      threshould=0.001, use_fundamental=False,
                      freq=4/365)#1/120)
-x, y = gen.getTestData(90, cut=False)
+x, y = gen.get_test_data(90, cut=False)
 
 while True:
     symbol = input('The symbol you want to predict : ')
@@ -50,4 +50,4 @@ while True:
     pl.plot(pred)
     pl.show()
     pred = model.predict(x[symbol])
-    Gain(pred, gen.getPrice(symbol)[gen.splitPoint[symbol]:])
+    Gain(pred, gen.get_price(symbol)[gen.splitPoint[symbol]:])
