@@ -43,6 +43,7 @@ class LSTMModel:
             #self.stacked_lstm = tf.contrib.rnn.MultiRNNCell(
             #    [lstm_cell() for _ in range(layers)])
             self.cudnn_lstm = cudnn_rnn.CudnnLSTM(layers, nodes, dropout=0.5)
+            self.cudnn_lstm.build(input_shape=[num_unrolling, None, self.dimI])
             #self.outputs, self.states = rnn.static_rnn(self.stacked_lstm,
             #                                           self.q, dtype=tf.float32)
             self.outputs, _ = self.cudnn_lstm.call(self.q)
