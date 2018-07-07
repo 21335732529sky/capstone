@@ -40,10 +40,12 @@ class LSTMModel:
                 cell = rnn.BasicLSTMCell(nodes, forget_bias=1.0)
                 #cell = rnn.GridLSTMCell(nodes, num_frequency_blocks=3)
                 return tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=self.keep_prob)
-            self.stacked_lstm = tf.contrib.rnn.MultiRNNCell(
-                [lstm_cell() for _ in range(layers)])
-            self.outputs, self.states = rnn.static_rnn(self.stacked_lstm,
-                                                       self.q, dtype=tf.float32)
+            #self.stacked_lstm = tf.contrib.rnn.MultiRNNCell(
+            #    [lstm_cell() for _ in range(layers)])
+            self.cudnn_lstm = cudnn_rnn.CudnnLSTM(layers, nodes, dropout=0.5)
+            #self.outputs, self.states = rnn.static_rnn(self.stacked_lstm,
+            #                                           self.q, dtype=tf.float32)
+            self.outputs, _ = self.cudnn_lstm(self.q)
 
             self.w = weight_variable([nodes, self.dimO])
             self.b = bias_variable([self.dimO])
