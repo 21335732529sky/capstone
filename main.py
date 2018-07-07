@@ -1,6 +1,7 @@
 from BatchGenerator import *
 from LSTMModel import *
 import matplotlib.pyplot as pl
+from tqdm import tqdm
 
 span = 90
 
@@ -25,17 +26,19 @@ train_iter = 20001
 err_list = []
 acc_list = []
 
-for i in range(train_iter):
-    batch_x, batch_y = gen.get_batch(32, length=span)
-    model.train(batch_x, batch_y, keep_prob=0.3)
+for i in range(train_iter // 100):
+    bar = tqdm(range(100))
+    bar.set_description('iteration {}:'.format(i))
+    for j in bar:
+        batch_x, batch_y = gen.get_batch(32, length=span)
+        model.train(batch_x, batch_y, keep_prob=0.3)
 
-    if i % 100 == 0:
-        #error, acc = model.performance(test_x, test_y)
-        error = model.performance(test_x, test_y)
-        err_list.append(error)
-        #acc_list.append(acc)
-        #print('[iter {}] : error = {}\n\tacc = {}'.format(i, error, acc))
-        print('[iter {}] : error = {}'.format(i, error))
+    #error, acc = model.performance(test_x, test_y)
+    error = model.performance(test_x, test_y)
+    err_list.append(error)
+    #acc_list.append(acc)
+    #print('[iter {}] : error = {}\n\tacc = {}'.format(i, error, acc))
+    print('[iter {}] : error = {}'.format(i, error))
 
 pred = {key: model.predict(test_x[key]) for key in test_x.keys()}
 
