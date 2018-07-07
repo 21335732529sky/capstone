@@ -45,7 +45,7 @@ class LSTMModel:
             self.cudnn_lstm = cudnn_rnn.CudnnLSTM(layers, nodes, dropout=0.5)
             #self.outputs, self.states = rnn.static_rnn(self.stacked_lstm,
             #                                           self.q, dtype=tf.float32)
-            self.outputs, _ = self.cudnn_lstm(self.q)
+            self.outputs, _ = self.cudnn_lstm.call(self.q)
 
             self.w = weight_variable([nodes, self.dimO])
             self.b = bias_variable([self.dimO])
