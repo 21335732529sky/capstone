@@ -208,4 +208,9 @@ class BatchGenerator:
 
             return np.array(ret + [ret[-1],]*span)
 
+        elif mode == 'I':
+            ret = values[1:]
+
+            return np.array([values[1], ] + ret)
+
         #return np.array(ret+[ret[-1],]*span)
