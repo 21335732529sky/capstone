@@ -13,8 +13,11 @@ class BatchGenerator:
         self.span = span
         self.th = threshould
         self.norm = norm_distrib
+
         tmp = self.read_stock_prices(domains)
+
         self.prices = {key: tmp[key].ix[30:, ['Close']].values.flatten() for key in tmp.keys()}
+
         stocks = self.read_stock_prices(domains)
         stocks = {key: self.max_scaling(self.calc_indices(df, indices)) for key, df in zip(stocks.keys(),
                                                                                            stocks.values())}
@@ -152,7 +155,7 @@ class BatchGenerator:
             ret.append(list(self.datasets[symbol].ix[time-length:time, :].values))
             ret_l.append(self.labels[symbol][time])
 
-        if self.mode == 'R':
+        if self.mode in ['R', 'I']:
             ret_l = [[x] for x in ret_l]
 
         return np.array(ret), np.array(ret_l)
@@ -181,7 +184,7 @@ class BatchGenerator:
                 tmp.append(self.datasets[key].ix[i-length:i].values)
             ret_x[key] = np.array(tmp)
             ret_y[key] = np.array(self.labels[key][self.splitPoint[key]:-cut*length])
-            if self.mode == 'R': ret_y[key] = np.array([[x] for x in ret_y[key]])
+            if self.mode in ['R', 'I']: ret_y[key] = np.array([[x] for x in ret_y[key]])
         return ret_x, ret_y
 
     def get_price(self, key):
@@ -211,6 +214,6 @@ class BatchGenerator:
         elif mode == 'I':
             ret = values[1:]
 
-            return np.array([values[1], ] + ret)
+            return np.array([values[1], ] + list(ret))
 
         #return np.array(ret+[ret[-1],]*span)
