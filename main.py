@@ -7,15 +7,12 @@ span = 90
 
 #domains = [['7974', 2000], ['7203', 2000], ['6752', 2000], ['6504', 2000], ['4506', 2000]]
 domains = [['GBPJPY-30', 100000]]
-indices = [['sma', [10]], ['sma', [30]], ['rsi', [10]], ['rsi', [30]], ['roc', [10]], ['roc', [30]],
-           ['macd', [10, 30, 5]], ['stochastic', [5, 10, 30]], ['dmi', [10]], ['dmi', [30]],
-           ['slope', [10]], ['slope', [30]], ['bollinger', [10, 2]], ['bollinger', [30, 2]],
-           ['cci', [10]], ['cci', [30]], ['williams', [10]], ['williams', [30]], ['ichimoku', [5, 10, 30]]]
+indices = [['sma', [10]], ['sma', [30]]]
 #indices = [['macd', [10, 30, 5]]]
 
 gen = BatchGenerator(5, indices=indices, domains=domains,
                      threshould=0.03, use_fundamental=False,
-                     freq=4/365, test_size=0.02, norm_distrib=True, label_mode='R')
+                     freq=4/365, test_size=0.02, norm_distrib=True, label_mode='I')
 
 dim = gen.get_shape('GBPJPY-30')[1]
 
