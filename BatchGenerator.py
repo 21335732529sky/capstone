@@ -3,6 +3,7 @@ import numpy as np
 import tools
 import random
 import inspect
+import os
 from sklearn.preprocessing import MinMaxScaler
 
 
@@ -13,6 +14,9 @@ class BatchGenerator:
         self.span = span
         self.th = threshould
         self.norm = norm_distrib
+        if domains == 'all':
+            domains = [[name.split('.')[0], 1000] for name in os.listdir('stock_data/')]
+
 
         tmp = self.read_stock_prices(domains)
 
@@ -25,6 +29,7 @@ class BatchGenerator:
 
         if use_fundamental:
             seats = self.max_scaling(self.read_balance_seat([x[0] for x in domains]))
+            print(seats)
             self.datasets = self.merge_dataframe(stocks, seats, list(stocks.keys()))
         else:
             self.datasets = stocks
@@ -46,8 +51,8 @@ class BatchGenerator:
 
         self.mode = label_mode
 
-    def get_shape(self, key):
-        return self.datasets[key].shape
+    def get_shape(self):
+        return list(self.datasets.values())[0].shape
 
     @staticmethod
     def _func(x):
@@ -109,7 +114,7 @@ class BatchGenerator:
     def read_stock_prices(domains):
         ret = {}
         for symbol, length in domains:
-            df = pd.read_csv('CSVData/{}.csv'.format(symbol), usecols=['Date', 'Close', 'High', 'Low'],
+            df = pd.read_csv('stock_data/{}.csv'.format(symbol), usecols=['Date', 'Close', 'High', 'Low'],
                              index_col='Date')
             df = df.ix[-length:, :]
             ret[symbol] = df

@@ -37,16 +37,16 @@ class LSTMModel:
             self.keep_prob = tf.placeholder(tf.float32)
 
             def lstm_cell():
-                cell = rnn.BasicLSTMCell(nodes, forget_bias=1.0)
+                cell = rnn.GRUCell(nodes)
                 #cell = rnn.GridLSTMCell(nodes, num_frequency_blocks=3)
                 return tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=self.keep_prob)
-            #self.stacked_lstm = tf.contrib.rnn.MultiRNNCell(
-            #    [lstm_cell() for _ in range(layers)])
-            self.cudnn_lstm = cudnn_rnn.CudnnLSTM(layers, nodes, dropout=0.5)
-            self.cudnn_lstm.build(input_shape=[num_unrolling, None, self.dimI])
-            #self.outputs, self.states = rnn.static_rnn(self.stacked_lstm,
-            #                                           self.q, dtype=tf.float32)
-            self.outputs, _ = self.cudnn_lstm.call(self.q)
+            self.stacked_lstm = tf.contrib.rnn.MultiRNNCell(
+                [lstm_cell() for _ in range(layers)])
+            #self.cudnn_lstm = cudnn_rnn.CudnnLSTM(layers, nodes, dropout=0.5)
+            #self.cudnn_lstm.build(input_shape=[num_unrolling, None, self.dimI])
+            self.outputs, self.states = rnn.static_rnn(self.stacked_lstm,
+                                                       self.q, dtype=tf.float32)
+            #self.outputs, _ = self.cudnn_lstm.call(self.q)
 
             self.w = weight_variable([nodes, self.dimO])
             self.b = bias_variable([self.dimO])
@@ -90,12 +90,15 @@ class LSTMModel:
     def performance(self, x, y):
         error = 0; acc = 0
         for key in x.keys():
-            feed_dict = {self.x: x[key], self.y_: y[key], self.keep_prob: 1.0}
-            if self.mode == 'C':
-                tmp1, tmp2 = self.sess.run([self.error, self.accuracy], feed_dict=feed_dict)
-                error += tmp1; acc += tmp2
-            else:
-                error += self.sess.run(self.error, feed_dict=feed_dict)
+            try:
+                feed_dict = {self.x: x[key], self.y_: y[key], self.keep_prob: 1.0}
+                if self.mode == 'C':
+                    tmp1, tmp2 = self.sess.run([self.error, self.accuracy], feed_dict=feed_dict)
+                    error += tmp1; acc += tmp2
+                else:
+                    error += self.sess.run(self.error, feed_dict=feed_dict)
+            except ValueError:
+                print('N: Test data of {}.csv was broken.'.format(key))
 
         return (error/len(x.keys()), acc/len(x.keys())) if self.mode == 'C' else error/len(x.keys())
 

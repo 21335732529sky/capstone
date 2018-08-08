@@ -5,21 +5,21 @@ from tqdm import tqdm
 
 span = 90
 
-#domains = [['7974', 2000], ['7203', 2000], ['6752', 2000], ['6504', 2000], ['4506', 2000]]
-domains = [['GBPJPY-30', 100000]]
+domains = 'all'
+#domains = [['GBPJPY-30', 100000]]
 indices = [['sma', [10]], ['sma', [30]]]
 #indices = [['macd', [10, 30, 5]]]
 
 gen = BatchGenerator(5, indices=indices, domains=domains,
                      threshould=0.03, use_fundamental=False,
-                     freq=4/365, test_size=0.02, norm_distrib=True, label_mode='I')
+                     freq=4/365, test_size=0.2, norm_distrib=True, label_mode='R')
 
-dim = gen.get_shape('GBPJPY-30')[1]
+dim = gen.get_shape()[1]
 
 model = LSTMModel(dim, 3, span, input_dim=dim, output_dim=1, alpha=0.00001, mode='R')
 
 test_x, test_y = gen.get_test_data(span, cut=True)
-train_iter = 20001
+train_iter = 500001
 err_list = []
 acc_list = []
 
@@ -28,7 +28,7 @@ for i in range(train_iter // 100):
     bar.set_description('iteration {}:'.format(i))
     for j in bar:
         batch_x, batch_y = gen.get_batch(32, length=span)
-        model.train(batch_x, batch_y, keep_prob=0.3)
+        model.train(batch_x, batch_y, keep_prob=0.5)
 
     #error, acc = model.performance(test_x, test_y)
     error = model.performance(test_x, test_y)
@@ -39,6 +39,7 @@ for i in range(train_iter // 100):
 
 pred = {key: model.predict(test_x[key]) for key in test_x.keys()}
 
+'''
 with open('result.csv', 'w', encoding='utf-8') as f:
     for key in test_x.keys():
         f.write(','.join(test_y[key]) + '\n' + \
@@ -76,4 +77,3 @@ if command == 'y':
     print('complete')
 else:
     print('quit program')
-'''
