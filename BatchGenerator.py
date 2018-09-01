@@ -52,7 +52,7 @@ class BatchGenerator:
         self.mode = label_mode
 
     def get_shape(self):
-        return list(self.datasets.values())[0].shape
+        return np.concatenate(list(self.datasets.values()), axis=0).shape
 
     @staticmethod
     def _func(x):
